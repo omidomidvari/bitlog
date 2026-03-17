@@ -1,0 +1,61 @@
+# File: .github/workflows/bitlog-workflow.yml
+name: Bitlog Full Workflow
+
+# Trigger the workflow on push, pull request, or manual dispatch
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  run-bitlog:
+    name: Run Bitlog JS File
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run lint and tests (optional, continues if fails)
+      - name: Run lint and tests
+        run: |
+          npm run lint || echo "Lint warnings found"
+          npm test || echo "Tests failed, but continue logging"
+
+      # Step 5: Execute JavaScript file with Bitlog
+      - name: Execute bitlog script
+        run: |
+          mkdir -p logs
+          node -e "
+          const { loggedSum, loggedFetchData } = require('./bitlog-example.js');
+          console.log('Testing loggedSum:');
+          loggedSum(10, 20);
+          loggedFetchData(99).then(res => console.log('Fetch complete:', res));
+          "
+
+      # Step 6: Upload logs as artifact (from ./logs directory)
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: bitlog-logs
+          path: ./logs/
+
+      # Step 7: Optional cleanup or final messages
+      - name: Workflow complete message
+        run: echo "Bitlog workflow finished. Logs are uploaded as artifacts."
